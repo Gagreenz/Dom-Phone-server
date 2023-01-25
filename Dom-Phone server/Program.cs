@@ -6,12 +6,10 @@ namespace Dom_Phone_server
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            //TODO: You must change CORS when you will deploy 
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -23,18 +21,14 @@ namespace Dom_Phone_server
             var app = builder.Build();
 
             app.UseCors();
-            // Configure the HTTP request pipeline.
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
-
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
 
             app.MapControllers();
 

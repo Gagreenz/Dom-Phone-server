@@ -1,5 +1,4 @@
-﻿
-namespace Dom_Phone_server.Models.User
+﻿namespace Dom_Phone_server.Models.Account
 {
     public class User
     {

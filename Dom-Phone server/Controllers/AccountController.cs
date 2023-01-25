@@ -1,4 +1,5 @@
-﻿using Dom_Phone_server.Models.User;
+﻿using Dom_Phone_server.Models.Account;
+using Dom_Phone_server.Services.AccountService;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dom_Phone_server.Controllers
@@ -7,6 +8,11 @@ namespace Dom_Phone_server.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        private IAccountService _accountService;
+        public AccountController(IAccountService accountService)
+        {
+            _accountService = accountService;
+        }
         [HttpPost("register")]
         public IActionResult Register([FromBody] UserRegisterDto userData)
         {
@@ -14,6 +20,14 @@ namespace Dom_Phone_server.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            var user = _accountService.Register(userData);
+            
+            if(user == null)
+            {
+                return BadRequest("User doesn`t created!");
+            }
+            
             return Ok("Успех");
         }
 
