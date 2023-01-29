@@ -2,14 +2,11 @@
 
 namespace Dom_Phone_server.Models.Account
 {
-    public class UserRegisterDto
+    public class UserLoginDto
     {
         [Required]
         [StringLength(20)]
-        public string Login { get; set; }  = string.Empty;
-        [Required]
-        [RegularExpression(@"((8|\+7)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{7,10}$")]
-        public string Phone { get; set; } = string.Empty;
+        public string Login { get; set; } = string.Empty;
         [Required]
         [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$")]
         public string Password { get; set; } = string.Empty;

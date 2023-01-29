@@ -1,5 +1,6 @@
 ﻿using Dom_Phone_server.Models.Account;
 using Dom_Phone_server.Models.DB;
+using Dom_Phone_server.Models.RepositoryData;
 using Dom_Phone_server.Services.AccountService.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -14,24 +15,25 @@ namespace Dom_Phone_server.Services.AccountService
         {
             _userContext = userContext;
         }
-        public UserRepositoryResponse<IEnumerable<User>> GetUsers(int count = 10)
+        public async Task<UserRepositoryResponse<IEnumerable<User>>> GetAsync(int count = 10)
         {
-            IEnumerable<User> users = _userContext.Users.Take(count).ToList();
+            IEnumerable<User> users = await _userContext.Users.Take(count).ToListAsync();
 
             return UserRepositoryResponse<IEnumerable<User>>.CreateResponse(users, $"Can`t get {count} Users");
         }
-        public UserRepositoryResponse<User> GetUserByLogin(string login)
+        public async Task<UserRepositoryResponse<User>> GetByLoginAsync(string login)
         {
-            User user = _userContext.Users.Where(u => u.Login == login).FirstOrDefault();
+            User user = await _userContext.Users.Where(u => u.Login == login).FirstOrDefaultAsync();
             
-            return UserRepositoryResponse<User>.CreateResponse(user, $"User with number:[{login}] not found.");
+            return UserRepositoryResponse<User>.CreateResponse(user, $"User with login:[{login}] not found.");
         }
-        public  UserRepositoryResponse<User> GetUserByPhone(string phoneNumber)
+        public async Task<UserRepositoryResponse<User>> GetByPhoneAsync(string phoneNumber)
         {
-            User user = _userContext.Users.Where(u => u.PhoneNumber == phoneNumber).FirstOrDefault();
+            User user = await _userContext.Users.Where(u => u.PhoneNumber == phoneNumber).FirstOrDefaultAsync();
+
             return UserRepositoryResponse<User>.CreateResponse(user, $"User with number:[{phoneNumber}] not found.");
         }
-        public UserRepositoryResponse<User> AddUser(User user)
+        public async Task<UserRepositoryResponse<User>> AddAsync(User user)
         {
             if (user == null) return UserRepositoryResponse<User>.CreateResponse(user, $"User can't be null.");
 
@@ -39,21 +41,21 @@ namespace Dom_Phone_server.Services.AccountService
 
             return UserRepositoryResponse<User>.CreateResponse(addedUser, $"User is not created."); 
         }
-        public UserRepositoryResponse<User> UpdateUser(User user)
+        public async Task<UserRepositoryResponse<User>> UpdateAsync(User user)
         {
             throw new NotImplementedException();
         }
-        public void DeleteUser(int userId)
+        public void DeleteById(int userId)
         {
             throw new NotImplementedException();
         }
-        public void DeleteUser(User user)
+        public void Delete(User user)
         {
             throw new NotImplementedException();
         }
-        public void Save()
+        public Task SaveAsync()
         {
-            _userContext.SaveChanges();
+            return _userContext.SaveChangesAsync();
         }
     }
 }

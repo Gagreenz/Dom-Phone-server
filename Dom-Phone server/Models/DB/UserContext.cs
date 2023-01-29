@@ -11,7 +11,6 @@ namespace Dom_Phone_server.Models.DB
         {
             Database.EnsureCreated();
         }
-        
 
     }
 }
