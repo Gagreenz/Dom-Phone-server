@@ -1,5 +1,5 @@
 ﻿using Dom_Phone_server.Models.Account;
-using Dom_Phone_server.Services.AccountService;
+using Dom_Phone_server.Services.AccountService.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dom_Phone_server.Controllers
@@ -8,10 +8,17 @@ namespace Dom_Phone_server.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private IAccountService _accountService;
+        private readonly IAccountService _accountService;
         public AccountController(IAccountService accountService)
         {
             _accountService = accountService;
+        }
+        [HttpGet("getUsers")]
+        public IActionResult GetUsers()
+        {
+            _accountService.Login();
+
+            return Ok("Успех");
         }
         [HttpPost("register")]
         public IActionResult Register([FromBody] UserRegisterDto userData)

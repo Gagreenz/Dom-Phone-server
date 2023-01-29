@@ -1,3 +1,8 @@
+using Dom_Phone_server.Models.DB;
+using Dom_Phone_server.Services.AccountService;
+using Dom_Phone_server.Services.AccountService.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
 namespace Dom_Phone_server
 {
     public class Program
@@ -6,9 +11,18 @@ namespace Dom_Phone_server
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            string? connection = builder.Configuration.GetSection("appSetings")["DefaultConnection"];
+            if (connection == null) throw new Exception("Connection string is null. Check appsettings.json to solve this.");
+            builder.Services.AddDbContext<UserContext>(options => options.UseNpgsql(connection));
+
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddScoped<IAccountService, AccountService>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+
             //TODO: You must change CORS when you will deploy 
             builder.Services.AddCors(options =>
             {

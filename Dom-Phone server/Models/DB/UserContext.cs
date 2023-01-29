@@ -6,11 +6,13 @@ namespace Dom_Phone_server.Models.DB
     public class UserContext : DbContext
     {
         public DbSet<User> Users => Set<User>();
-        public UserContext() => Database.EnsureCreated();
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        public UserContext(DbContextOptions<UserContext> options) 
+            : base(options)
         {
-            //optionsBuilder.UseSqlite("Data Source=helloapp.db");
+            Database.EnsureCreated();
         }
+        
+
     }
 }
+
