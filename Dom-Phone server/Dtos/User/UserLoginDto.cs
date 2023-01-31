@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Dom_Phone_server.Models.Account
+namespace Dom_Phone_server.Dtos.User
 {
     public class UserLoginDto
     {

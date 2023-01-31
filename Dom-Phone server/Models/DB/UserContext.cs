@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Dom_Phone_server.Models.Account;
 
 namespace Dom_Phone_server.Models.DB
 {
