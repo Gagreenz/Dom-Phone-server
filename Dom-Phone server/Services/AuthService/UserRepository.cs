@@ -3,9 +3,13 @@ using Dom_Phone_server.Models;
 using Dom_Phone_server.Models.Data;
 using Dom_Phone_server.Models.DB;
 using Dom_Phone_server.Services.AccountService.Interfaces;
+using Dom_Phone_server.Services.TokenService;
+using Dom_Phone_server.Services.TokenService.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
@@ -95,25 +99,25 @@ namespace Dom_Phone_server.Services.AccountService
             response.Data = user;
             return response;
          }
-        public async Task<ServiceResponse<User>> SetRefreshToken(User user, string refreshToken)
+        public async Task SetRefreshToken(RefreshToken refreshToken)
+        { 
+            await _context.RefreshTokens.AddAsync(refreshToken);
+            await _context.SaveChangesAsync();
+        }
+        public async Task<bool> DeleteRefreshToken(JwtSecurityToken jwt)
         {
-            ServiceResponse<User> response = new ServiceResponse<User>();
+            var userId = Guid.Parse(jwt.Claims.First(c => c.Type == "UserId").Value);
+            var serviceResponse = await GetUserById(userId);
+            if (!serviceResponse.IsSuccess) return false;
 
-            var userEntity = await _context.Users.SingleAsync(u => u.Id == user.Id);
-            if(userEntity == null)
-            {
-                response.IsSuccess = false;
-                response.Data = null;
-                response.Message = $"User with id:{user.Id} not found.";
+            var jwtId = jwt.Claims.First(c => c.Type == "Id").Value;
+            var token = _context.RefreshTokens.FirstOrDefault(rt => rt.Id == Guid.Parse(jwtId));
+            if(token == null) return false;
 
-                return response;
-            }
-
-            userEntity.RefreshToken = refreshToken;
+            _context.RefreshTokens.Remove(token);
             await _context.SaveChangesAsync();
 
-            response.Data = user;
-            return response;
+            return true;
         }
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {

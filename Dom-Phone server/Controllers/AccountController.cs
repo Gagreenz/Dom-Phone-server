@@ -2,48 +2,49 @@
 using Dom_Phone_server.Services.AccountService.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Dom_Phone_server.Dtos.User;
-using Dom_Phone_server.Models.Data;
-using Dom_Phone_server.Dtos;
-using System.Linq;
 using Dom_Phone_server.Models;
 using Microsoft.AspNetCore.Authorization;
+using Dom_Phone_server.Data;
+using Dom_Phone_server.Models.Data;
 
 namespace Dom_Phone_server.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
+
     [ApiController]
     public class AccountController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
-        ITokenService _tokenService;
-        public AccountController(IUserRepository userRepository,ITokenService tokenService)
+        private readonly ITokenService _tokenService;
+
+        public AccountController(IUserRepository userRepository, ITokenService tokenService)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
         }
-        [HttpGet("test")]
-        [Authorize]
-        public IActionResult Test()
-        {
-            return Ok();
-        }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UserLoginDto userLoginDto)
+        [HttpPost("Login")]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] UserLoginDto userLoginDto)
         {
             var serviceResponse = await _userRepository.Login(userLoginDto);
-
             if(!serviceResponse.IsSuccess)
             {
                 return BadRequest(serviceResponse.Message);
             }
+            var user = serviceResponse.Data!;
+            if(user == null) return BadRequest("Server error");
 
-            await setRefreshToken(user: serviceResponse.Data!);
-            setAccessToken(user: serviceResponse.Data!);
+            await setRefreshToken(user);
 
-            return Ok("Success");
+            AuthResponse response = new AuthResponse()
+            {
+                AccessToken = _tokenService.GenerateAccessToken(user),
+            };
+
+            return Ok(response);
         }
-        [HttpPost("register")]
+
+        [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterDto userRegisterDto)
         {
             var serviceResponse = await _userRepository.Register(userRegisterDto);
@@ -53,57 +54,54 @@ namespace Dom_Phone_server.Controllers
                 return BadRequest(serviceResponse.Message);
             }
 
-            await setRefreshToken(user: serviceResponse.Data!);
-            setAccessToken(user: serviceResponse.Data!);
-
-            return Ok("Success");
+            return Ok();
         }
 
-        [HttpPost("resetRefreshToken")]
-        public async Task<IActionResult> ResetRefreshToken()
+        [HttpPost("Logout")]
+        [Authorize]
+        public async Task<IActionResult> LogOut()
         {
-            var RefreshToken = Request.Cookies["RefreshToken"];
+            var refreshToken = Request.Cookies["RefreshToken"];
+            var jwt = _tokenService.GetJwt(refreshToken);
+            if (!(await _userRepository.DeleteRefreshToken(jwt))) return BadRequest("Missing RefreshToken");
 
-            if (RefreshToken == null) return BadRequest("Missing RefreshToken");
+            return Ok();
+        }
 
-            var serviceResponse = await _userRepository.GetUserById(_tokenService.GetId(RefreshToken));
+        [HttpPost("ResetTokens")]
+        public async Task<ActionResult<AuthResponse>> ResetTokens()
+        {
+            var refreshToken = Request.Cookies["RefreshToken"];
+            if (refreshToken == null) return BadRequest("Missing RefreshToken");
+
+            var jwt = _tokenService.GetJwt(refreshToken);
+            var userId = Guid.Parse(jwt.Claims.First(c => c.Type == "UserId").Value);
+            var serviceResponse = await _userRepository.GetUserById(userId);
+
+            var user = serviceResponse.Data!;
+            if (user == null) return BadRequest("Server error");
+
             if (!serviceResponse.IsSuccess) return BadRequest(serviceResponse!.Message);
+            if (!_tokenService.VerifyRefreshToken(user,refreshToken)) return BadRequest("Missing RefreshToken");
 
-            if (!_tokenService.VerifyRefreshToken(RefreshToken, serviceResponse.Data!)) return BadRequest("Wrong RefreshToken");
+            await _userRepository.DeleteRefreshToken(jwt);
+            await setRefreshToken(user);
 
-            await setRefreshToken(user: serviceResponse.Data!);
-            setAccessToken(user: serviceResponse.Data!);
-
-            return Ok("Success");
+            return Ok();
         }
         private async Task setRefreshToken(User user)
         {
-            var refreshToken = _tokenService.GenerateRefreshToken(user);
-
-            var RefreshCookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                Expires = DateTime.Now.AddDays(30)
-            };
-
-            await _userRepository.SetRefreshToken(user, refreshToken);
-            Response.Cookies.Append("refreshToken", refreshToken, RefreshCookieOptions);
-        }
-        private void setAccessToken(User user)
-        {
-            var accessToken = _tokenService.GenerateAccessToken(user);
+            RefreshToken refreshToken = _tokenService.GenerateRefreshToken(user);
+            await _userRepository.SetRefreshToken(refreshToken);
 
             var AccessCookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                Expires = DateTime.Now.AddMinutes(30)
+                Expires = refreshToken.ExpiredAt
             };
 
-            Response.Cookies.Append("AccessToken", accessToken, AccessCookieOptions);
-
+            Response.Cookies.Append("RefreshToken", refreshToken.Token, AccessCookieOptions);
         }
-
     }
 }

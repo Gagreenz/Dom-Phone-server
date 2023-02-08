@@ -9,6 +9,6 @@ namespace Dom_Phone_server.Models
         public string PhoneNumber { get; set; } = string.Empty;
         public byte[] PasswordHash { get; set; } = default!;
         public byte[] PasswordSalt { get; set; } = default!;
-        public string? RefreshToken { get; set; }
+        public List<RefreshToken> RefreshTokens { get; set; } = new();
     }
 }
