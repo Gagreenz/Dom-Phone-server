@@ -8,7 +8,8 @@ using Dom_Phone_server.Services.TokenService;
 using Dom_Phone_server.Services.TokenService.Interfaces;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
-using Microsoft.AspNetCore.CookiePolicy;
+using Dom_Phone_server.Services;
+using Dom_Phone_server.Services.PaymentService;
 
 namespace Dom_Phone_server
 {
@@ -25,7 +26,9 @@ namespace Dom_Phone_server
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddCors();
             builder.Services.AddHttpContextAccessor();
+            builder.Services.AddAutoMapper(typeof(AppMappingProfile));
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -47,33 +50,21 @@ namespace Dom_Phone_server
                         Name = "Authorization",
                         Type = SecuritySchemeType.ApiKey
                     });
-
                     options.OperationFilter<SecurityRequirementsOperationFilter>();
                 });
-
 
             builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
             builder.Services.AddSingleton<ITokenService,TokenService>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
-           
-
-            //TODO: You must change CORS when you will deploy 
-            builder.Services.AddCors(options =>
-            {
-                options.AddDefaultPolicy(policy =>
-                {
-                    policy.WithOrigins("http://localhost:3000");
-                });
-            });
+            builder.Services.AddScoped<PaymentRepository>();
+            
 
             var app = builder.Build();
-            app.UseCors(builder => builder.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials());
-            app.UseCookiePolicy(new CookiePolicyOptions
-            {
-                MinimumSameSitePolicy = SameSiteMode.Strict,
-                HttpOnly = HttpOnlyPolicy.Always,
-                Secure = CookieSecurePolicy.Always
-            });
+            app.UseCors(builder =>
+                builder.WithOrigins("http://localhost:3000")
+                       .AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .AllowCredentials());
 
             if (app.Environment.IsDevelopment())
             {

@@ -24,6 +24,7 @@ namespace Dom_Phone_server.Controllers
         }
 
         [HttpPost("Login")]
+        [Produces("application/json")]
         public async Task<ActionResult<AuthResponse>> Login([FromBody] UserLoginDto userLoginDto)
         {
             var serviceResponse = await _userRepository.Login(userLoginDto);
@@ -40,7 +41,6 @@ namespace Dom_Phone_server.Controllers
             {
                 AccessToken = _tokenService.GenerateAccessToken(user),
             };
-
             return Ok(response);
         }
 
@@ -62,8 +62,9 @@ namespace Dom_Phone_server.Controllers
         public async Task<IActionResult> LogOut()
         {
             var refreshToken = Request.Cookies["RefreshToken"];
+            if(refreshToken == null) return Ok("Missing RefreshToken");
             var jwt = _tokenService.GetJwt(refreshToken);
-            if (!(await _userRepository.DeleteRefreshToken(jwt))) return BadRequest("Missing RefreshToken");
+            if (!(await _userRepository.DeleteRefreshToken(jwt))) return Ok("Missing RefreshToken");
 
             return Ok();
         }
@@ -98,7 +99,8 @@ namespace Dom_Phone_server.Controllers
             {
                 HttpOnly = true,
                 Secure = true,
-                Expires = refreshToken.ExpiredAt
+                Expires = refreshToken.ExpiredAt,
+                SameSite = SameSiteMode.None,
             };
 
             Response.Cookies.Append("RefreshToken", refreshToken.Token, AccessCookieOptions);

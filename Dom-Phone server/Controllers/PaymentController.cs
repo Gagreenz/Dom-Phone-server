@@ -1,64 +1,68 @@
-﻿using AutoMapper;
-using Dom_Phone_server.Data;
-using Dom_Phone_server.Dtos;
-using Dom_Phone_server.Dtos.User;
+﻿using Dom_Phone_server.Data;
+using Dom_Phone_server.Dtos.Payment;
 using Dom_Phone_server.Services.AccountService.Interfaces;
 using Dom_Phone_server.Services.PaymentService;
 using Dom_Phone_server.Services.TokenService.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Dom_Phone_server.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class UserController : ControllerBase
+    public class PaymentController : ControllerBase
     {
+        PaymentRepository _paymentRepository;
+
         ITokenService _tokenService;
-        IUserRepository _userRepository;
         IHttpContextAccessor _accessor;
-        public UserController(
+        public PaymentController(
             ITokenService tokenService,
-            IUserRepository userRepository,
             IHttpContextAccessor accessor,
             PaymentRepository paymentRepository)
         {
             _tokenService = tokenService;
-            _userRepository = userRepository;
             _accessor = accessor;
+            _paymentRepository = paymentRepository;
+        }
+
+        [HttpPost]
+        [Route("UppdatePayment")]
+        [Authorize]
+        public IActionResult UppdatePayment(PaymentUpdateDto paymentDto)
+        {
+            _paymentRepository.UpdatePayment(paymentDto);
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("AddPayment")]
+        [Authorize]
+        public IActionResult AddPayment(PaymentCreateDto paymentDto)
+        {
+            string token = _accessor.HttpContext.Request.Headers["Authorization"];
+            token = token.Substring("bearer ".Length).Trim();
+
+            Guid userId = Guid
+                .Parse(_tokenService.GetJwt(token).Claims
+                .FirstOrDefault(c => c.Type == DomPhoneJWTClaims.UserId).Value);
+
+            _paymentRepository.AddPayment(userId,paymentDto);
+            return Ok();
         }
 
         [HttpGet]
-        [Route("GetUserData")]
+        [Route("GetAllPayments")]
         [Authorize]
-        public async Task<ActionResult<UserInfoDto>> GetUserData()
+        public ActionResult<PaymentDto> GetAllPayments()
         {
             string token = _accessor.HttpContext.Request.Headers["Authorization"];
             token = token.Substring("bearer ".Length).Trim();
 
             Guid userId = Guid.Parse(_tokenService.GetJwt(token).Claims.FirstOrDefault(c => c.Type == DomPhoneJWTClaims.UserId).Value);
-            var serviceResponse = await _userRepository.GetInfo(userId);
+            var response = _paymentRepository.GetAllPayments(userId);
 
-            if (!serviceResponse.IsSuccess) return BadRequest(serviceResponse.Message);
-
-            return Ok(serviceResponse.Data);
+            return Ok(response);
         }
-        [HttpPut]
-        [Route("UpdateInfo")]
-        [Authorize]
-        public async Task<ActionResult> UpdateInfo(UserUpdateDto userDto)
-        {
-            string token = _accessor.HttpContext.Request.Headers["Authorization"];
-            token = token.Substring("bearer ".Length).Trim();
-
-            Guid userId = Guid.Parse(_tokenService.GetJwt(token).Claims.FirstOrDefault(c => c.Type == DomPhoneJWTClaims.UserId).Value);
-            var serviceResponse = await _userRepository.Update(userId, userDto);
-
-            if (!serviceResponse.IsSuccess) return BadRequest(serviceResponse.Message);
-
-            return Ok();
-        }
-        
     }
 }

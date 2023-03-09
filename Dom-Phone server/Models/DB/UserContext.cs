@@ -7,6 +7,7 @@ namespace Dom_Phone_server.Models.DB
     {
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+        public DbSet<Payment> Payments { get; set; } = null!;
         public UserContext(DbContextOptions<UserContext> options) 
             : base(options)
         {

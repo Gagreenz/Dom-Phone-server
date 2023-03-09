@@ -1,4 +1,5 @@
-﻿using Dom_Phone_server.Dtos.User;
+﻿using AutoMapper;
+using Dom_Phone_server.Dtos.User;
 using Dom_Phone_server.Models;
 using Dom_Phone_server.Models.Data;
 using Dom_Phone_server.Models.DB;
@@ -18,9 +19,11 @@ namespace Dom_Phone_server.Services.AccountService
     public class UserRepository : IUserRepository
     {
         private readonly UserContext _context;
-        public UserRepository(UserContext userContext)
+        IMapper _mapper;
+        public UserRepository(UserContext userContext, IMapper mapper)
         {
             _context = userContext;
+            _mapper = mapper;
         }
 
         public async Task<ServiceResponse<User>> Login(UserLoginDto userLoginDto)
@@ -30,10 +33,6 @@ namespace Dom_Phone_server.Services.AccountService
             User user = await _context.Users.SingleOrDefaultAsync(u => u.Login == userLoginDto.Login);
             if (user == null)
             {
-                response.IsSuccess = false;
-                response.Data = null;
-                response.Message = $"User {userLoginDto.Login} not found.";
-
                 return response;
             }
 
@@ -99,6 +98,51 @@ namespace Dom_Phone_server.Services.AccountService
             response.Data = user;
             return response;
          }
+        public async Task<ServiceResponse<UserInfoDto>> GetInfo(Guid id)
+        {
+            ServiceResponse<UserInfoDto> response = new ServiceResponse<UserInfoDto>();
+            var serviceResponse = await this.GetUserById(id);
+
+            if (!serviceResponse.IsSuccess)
+            {
+                response.IsSuccess = false;
+                response.Data = null;
+                response.Message = serviceResponse.Message;
+
+                return response;
+            }
+
+            var user = serviceResponse.Data;
+
+            response.Data = new UserInfoDto()
+            {
+                Name = user.Login,
+                ImgUrl = user.Img,
+            };
+
+            return response;
+        }
+        public async Task<ServiceResponse<bool>> Update(Guid id, UserUpdateDto userDto)
+        {
+            ServiceResponse<bool> response = new ServiceResponse<bool>();
+            var serviceResponse = await this.GetUserById(id);
+
+            if (!serviceResponse.IsSuccess)
+            {
+                response.IsSuccess = false;
+                response.Message = serviceResponse.Message;
+
+                return response;
+            }
+
+            var user = serviceResponse.Data;
+
+            _mapper.Map(userDto, user);
+            _context.SaveChanges();
+
+
+            return response;
+        }
         public async Task SetRefreshToken(RefreshToken refreshToken)
         { 
             await _context.RefreshTokens.AddAsync(refreshToken);
@@ -136,5 +180,6 @@ namespace Dom_Phone_server.Services.AccountService
             }
         }
 
+        
     }
 }

@@ -5,6 +5,7 @@ using Dom_Phone_server.Services.TokenService.Interfaces;
 using Dom_Phone_server.Models;
 using Dom_Phone_server.Models.DB;
 using Dom_Phone_server.Models.Data;
+using Dom_Phone_server.Data;
 
 namespace Dom_Phone_server.Services.TokenService
 {
@@ -20,8 +21,8 @@ namespace Dom_Phone_server.Services.TokenService
         {
             List<Claim> claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),
-                new Claim(ClaimTypes.Expired,DateTime.Now.AddMinutes(30).ToString())
+                new Claim(DomPhoneJWTClaims.UserId,user.Id.ToString()),
+                new Claim(DomPhoneJWTClaims.ExpiredAt,DateTime.Now.AddMinutes(30).ToString())
             };
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
@@ -47,10 +48,10 @@ namespace Dom_Phone_server.Services.TokenService
 
             List<Claim> claims = new List<Claim>
             {
-                new Claim("Id", tokenId.ToString()),
-                new Claim("UserId", user.Id.ToString()),
-                new Claim("ExpiredAt", expiredAt.ToString()),
-                new Claim("CreatedAt", createdAt.ToString())
+                new Claim(DomPhoneJWTClaims.Id, tokenId.ToString()),
+                new Claim(DomPhoneJWTClaims.UserId, user.Id.ToString()),
+                new Claim(DomPhoneJWTClaims.ExpiredAt, expiredAt.ToString()),
+                new Claim(DomPhoneJWTClaims.CreatedAt, createdAt.ToString())
             };
             SymmetricSecurityKey key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Security:RefreshKey").Value!));
             SigningCredentials creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -77,7 +78,6 @@ namespace Dom_Phone_server.Services.TokenService
         {
             return new JwtSecurityTokenHandler().ReadJwtToken(token);
         }
-
         public bool VerifyRefreshToken(User user, string refreshToken)
         {
             return true;
